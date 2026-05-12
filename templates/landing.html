@@ -23,7 +23,7 @@
     </p>
     <div class="lhero-actions">
         <a href="{{ url_for('register') }}" class="lhero-btn">Create free account</a>
-        <a href="#" class="lhero-btn">See how it works</a>
+        <a href="#" class="lhero-btn" id="video-trigger">See how it works</a>
     </div>
     <div class="lhero-mockup">
         <div class="lmockup-chrome">
@@ -93,4 +93,58 @@
     </div>
 </section>
 
+<div id="video-modal" class="lmodal-overlay" aria-hidden="true">
+    <div class="lmodal-box">
+        <button class="lmodal-close" id="modal-close" aria-label="Close">&times;</button>
+        <div class="lmodal-video-wrap">
+            <iframe
+                id="modal-iframe"
+                src=""
+                data-src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+                allow="autoplay; encrypted-media"
+                allowfullscreen
+                frameborder="0"
+            ></iframe>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var overlay  = document.getElementById('video-modal');
+    var iframe   = document.getElementById('modal-iframe');
+    var closeBtn = document.getElementById('modal-close');
+    var trigger  = document.getElementById('video-trigger');
+
+    function openModal() {
+        iframe.src = iframe.dataset.src;
+        overlay.classList.add('is-open');
+        overlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeModal() {
+        iframe.src = '';
+        overlay.classList.remove('is-open');
+        overlay.setAttribute('aria-hidden', 'true');
+    }
+
+    trigger.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal();
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeModal();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeModal();
+    });
+})();
+</script>
 {% endblock %}
