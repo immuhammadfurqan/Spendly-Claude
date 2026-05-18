@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="profile-section">
+
+    <div class="profile-hero">
+        <div class="profile-avatar">{{ user.initial }}</div>
+        <div class="profile-identity">
+            <h1 class="profile-name">{{ user.name }}</h1>
+            <p class="profile-email">{{ user.email }}</p>
+            <p class="profile-meta">
+                <i data-lucide="calendar" class="icon-inline"></i>
+                Member since {{ user.member_since }}
+            </p>
+        </div>
+    </div>
+
+    <div class="profile-stats">
+        <div class="profile-stat">
+            <div class="profile-stat-icon profile-stat-icon--accent">
+                <i data-lucide="wallet"></i>
+            </div>
+            <div class="profile-stat-body">
+                <span class="profile-stat-label">Total spent</span>
+                <span class="profile-stat-value">{{ stats.total_spent }}</span>
+                <span class="profile-stat-note">this month</span>
+            </div>
+        </div>
+        <div class="profile-stat">
+            <div class="profile-stat-icon profile-stat-icon--neutral">
+                <i data-lucide="arrow-left-right"></i>
+            </div>
+            <div class="profile-stat-body">
+                <span class="profile-stat-label">Transactions</span>
+                <span class="profile-stat-value">{{ stats.tx_count }}</span>
+                <span class="profile-stat-note">this month</span>
+            </div>
+        </div>
+        <div class="profile-stat">
+            <div class="profile-stat-icon profile-stat-icon--accent2">
+                <i data-lucide="trending-up"></i>
+            </div>
+            <div class="profile-stat-body">
+                <span class="profile-stat-label">Top category</span>
+                <span class="profile-stat-value">{{ stats.top_category }}</span>
+                <span class="profile-stat-note">by spend</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-panel">
+        <h2 class="profile-panel-title">
+            <i data-lucide="receipt" class="icon-inline"></i>
+            Recent transactions
+        </h2>
+        <div class="profile-table-wrap">
+            <table class="profile-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th class="ta-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr>
+                        <td class="profile-table-date">{{ tx.date }}</td>
+                        <td>{{ tx.description }}</td>
+                        <td>
+                            <span class="cat-badge cat-badge--{{ tx.category }}">
+                                <i data-lucide="{{ tx.icon }}"></i>
+                                {{ tx.category_label }}
+                            </span>
+                        </td>
+                        <td class="ta-right profile-table-amt">{{ tx.amount }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="profile-panel">
+        <h2 class="profile-panel-title">
+            <i data-lucide="pie-chart" class="icon-inline"></i>
+            Category breakdown
+        </h2>
+        <div class="profile-breakdown">
+            {% for row in breakdown %}
+            <div class="profile-breakdown-row">
+                <span class="profile-breakdown-label">
+                    <i data-lucide="{{ row.icon }}" class="icon-inline"></i>
+                    {{ row.category_label }}
+                </span>
+                <div class="lbar-track">
+                    <div class="lbar-fill {{ row.bar_class }}" style="width: {{ row.percent }}%"></div>
+                </div>
+                <span class="profile-breakdown-amt">{{ row.amount }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    if (window.lucide) { lucide.createIcons(); }
+</script>
+{% endblock %}
