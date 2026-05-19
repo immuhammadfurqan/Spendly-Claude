@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import date
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db, seed_db
@@ -7,6 +8,8 @@ from database.queries import (
     build_stats,
     build_transactions,
     build_breakdown,
+    resolve_date_range,
+    DATE_PRESETS,
 )
 
 app = Flask(__name__)
@@ -129,11 +132,20 @@ def profile():
         session.clear()
         return redirect(url_for("login"))
 
-    expense_rows = conn.execute(
-        "SELECT amount, category, date, description FROM expenses "
-        "WHERE user_id = ? ORDER BY date DESC, id DESC",
-        (user_row["id"],),
-    ).fetchall()
+    filt = resolve_date_range(request.args, date.today())
+
+    sql = "SELECT amount, category, date, description FROM expenses WHERE user_id = ?"
+    params = [user_row["id"]]
+    if filt["is_active"]:
+        if filt["start"]:
+            sql += " AND date >= ?"
+            params.append(filt["start"])
+        if filt["end"]:
+            sql += " AND date <= ?"
+            params.append(filt["end"])
+    sql += " ORDER BY date DESC, id DESC"
+
+    expense_rows = conn.execute(sql, params).fetchall()
     conn.close()
 
     return render_template(
@@ -142,6 +154,8 @@ def profile():
         stats=build_stats(expense_rows),
         transactions=build_transactions(expense_rows),
         breakdown=build_breakdown(expense_rows),
+        date_filter=filt,
+        date_presets=DATE_PRESETS,
     )
 
 

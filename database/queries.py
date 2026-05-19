@@ -1,7 +1,7 @@
 """Helpers that turn raw expense / user rows into the context the
 profile.html template renders. Pure functions — no Flask, no I/O."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 CATEGORY_ICONS = {
@@ -17,6 +17,106 @@ CATEGORY_ICONS = {
 BAR_CLASSES = ("lbar-fill--purple", "lbar-fill--orange", "lbar-fill--blue")
 
 KNOWN_CATEGORIES = set(CATEGORY_ICONS.keys())
+
+DATE_PRESETS = (
+    ("all",   "All time"),
+    ("month", "This month"),
+    ("30d",   "Last 30 days"),
+    ("year",  "This year"),
+)
+_PRESET_LABELS = dict(DATE_PRESETS)
+
+
+def _parse_iso(value):
+    return datetime.strptime(value, "%Y-%m-%d").date()
+
+
+def _display(d):
+    return d.strftime("%b %d, %Y") if d else ""
+
+
+def resolve_date_range(args, today):
+    """Resolve query-string filter params into an inclusive date window.
+
+    Bounds are inclusive: date >= start AND date <= end.
+    Returns dict with start/end as 'YYYY-MM-DD' strings (or None),
+    preset key, range_label, start/end_display, is_active flag, and an
+    optional error message for the template.
+    """
+    start_raw = (args.get("start") or "").strip()
+    end_raw   = (args.get("end") or "").strip()
+    preset_raw = (args.get("preset") or "").strip()
+
+    inactive = {
+        "start": None, "end": None, "preset": None,
+        "range_label": "all time",
+        "start_display": "", "end_display": "",
+        "is_active": False, "error": None,
+    }
+
+    # Explicit start/end wins over preset
+    if start_raw or end_raw:
+        start_date = end_date = None
+        try:
+            if start_raw:
+                start_date = _parse_iso(start_raw)
+            if end_raw:
+                end_date = _parse_iso(end_raw)
+        except ValueError:
+            return {
+                **inactive,
+                "error": "Invalid date — showing all transactions.",
+            }
+
+        if start_date and end_date and start_date > end_date:
+            return {
+                **inactive,
+                "error": "Start date must be on or before end date.",
+            }
+
+        start_display = _display(start_date)
+        end_display   = _display(end_date)
+        if start_date and end_date:
+            range_label = f"{start_display} – {end_display}"
+        elif start_date:
+            range_label = f"from {start_display}"
+        else:
+            range_label = f"up to {end_display}"
+
+        return {
+            "start": start_date.isoformat() if start_date else None,
+            "end":   end_date.isoformat()   if end_date   else None,
+            "preset": None,
+            "range_label": range_label,
+            "start_display": start_display,
+            "end_display":   end_display,
+            "is_active": True,
+            "error": None,
+        }
+
+    if preset_raw == "month":
+        start_date = today.replace(day=1)
+        end_date = today
+    elif preset_raw == "30d":
+        start_date = today - timedelta(days=29)
+        end_date = today
+    elif preset_raw == "year":
+        start_date = today.replace(month=1, day=1)
+        end_date = today
+    else:
+        # 'all', empty, or unknown — no filter
+        return {**inactive, "preset": preset_raw if preset_raw == "all" else None}
+
+    return {
+        "start": start_date.isoformat(),
+        "end":   end_date.isoformat(),
+        "preset": preset_raw,
+        "range_label": _PRESET_LABELS[preset_raw],
+        "start_display": _display(start_date),
+        "end_display":   _display(end_date),
+        "is_active": True,
+        "error": None,
+    }
 
 
 def format_amount(value):

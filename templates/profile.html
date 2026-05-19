@@ -18,6 +18,38 @@
         </div>
     </div>
 
+    <form class="filter-bar" method="GET" action="{{ url_for('profile') }}">
+        <div class="filter-presets">
+            {% for key, label in date_presets %}
+                <a href="{{ url_for('profile', preset=key) }}"
+                   class="filter-preset{% if date_filter.preset == key or (key == 'all' and not date_filter.is_active) %} filter-preset--active{% endif %}">
+                    {{ label }}
+                </a>
+            {% endfor %}
+        </div>
+        <div class="filter-dates">
+            <label class="filter-field">
+                <span>From</span>
+                <input class="filter-input" type="date" name="start" value="{{ date_filter.start or '' }}">
+            </label>
+            <label class="filter-field">
+                <span>To</span>
+                <input class="filter-input" type="date" name="end" value="{{ date_filter.end or '' }}">
+            </label>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn-submit">Apply</button>
+            <a class="filter-clear" href="{{ url_for('profile') }}">Clear</a>
+        </div>
+        {% if date_filter.error %}
+            <p class="filter-error" role="alert">{{ date_filter.error }}</p>
+        {% endif %}
+    </form>
+
+    <p class="filter-caption">
+        Showing {{ stats.tx_count }} transaction{{ '' if stats.tx_count == 1 else 's' }} — {{ date_filter.range_label }}
+    </p>
+
     <div class="profile-stats">
         <div class="profile-stat">
             <div class="profile-stat-icon profile-stat-icon--accent">
@@ -26,7 +58,7 @@
             <div class="profile-stat-body">
                 <span class="profile-stat-label">Total spent</span>
                 <span class="profile-stat-value">{{ stats.total_spent }}</span>
-                <span class="profile-stat-note">this month</span>
+                <span class="profile-stat-note">{{ date_filter.range_label }}</span>
             </div>
         </div>
         <div class="profile-stat">
@@ -36,7 +68,7 @@
             <div class="profile-stat-body">
                 <span class="profile-stat-label">Transactions</span>
                 <span class="profile-stat-value">{{ stats.tx_count }}</span>
-                <span class="profile-stat-note">this month</span>
+                <span class="profile-stat-note">{{ date_filter.range_label }}</span>
             </div>
         </div>
         <div class="profile-stat">
