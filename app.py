@@ -2,6 +2,12 @@ import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db, seed_db
+from database.queries import (
+    build_user_context,
+    build_stats,
+    build_transactions,
+    build_breakdown,
+)
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key-change-in-production"
@@ -112,64 +118,31 @@ def profile():
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
-    user = {
-        "name":         "Demo User",
-        "email":        "demo@spendly.com",
-        "initial":      "D",
-        "member_since": "May 2026",
-    }
+    conn = get_db()
+    user_row = conn.execute(
+        "SELECT id, name, email, created_at FROM users WHERE id = ?",
+        (session["user_id"],),
+    ).fetchone()
 
-    stats = {
-        "total_spent":  "₹18,240",
-        "tx_count":     8,
-        "top_category": "Bills",
-    }
+    if user_row is None:
+        conn.close()
+        session.clear()
+        return redirect(url_for("login"))
 
-    transactions = [
-        {"date": "May 16", "description": "Miscellaneous",
-         "category": "other",         "category_label": "Other",
-         "icon": "more-horizontal", "amount": "₹15"},
-        {"date": "May 14", "description": "Coffee and snacks",
-         "category": "food",          "category_label": "Food",
-         "icon": "utensils", "amount": "₹9"},
-        {"date": "May 12", "description": "Clothing",
-         "category": "shopping",      "category_label": "Shopping",
-         "icon": "shopping-bag", "amount": "₹90"},
-        {"date": "May 10", "description": "Movie tickets",
-         "category": "entertainment", "category_label": "Entertainment",
-         "icon": "film", "amount": "₹25"},
-        {"date": "May 08", "description": "Pharmacy",
-         "category": "health",        "category_label": "Health",
-         "icon": "heart-pulse", "amount": "₹45"},
-        {"date": "May 05", "description": "Electricity bill",
-         "category": "bills",         "category_label": "Bills",
-         "icon": "zap", "amount": "₹120"},
-        {"date": "May 03", "description": "Uber rides",
-         "category": "transport",     "category_label": "Transport",
-         "icon": "car", "amount": "₹35"},
-        {"date": "May 01", "description": "Lunch at cafe",
-         "category": "food",          "category_label": "Food",
-         "icon": "utensils", "amount": "₹13"},
-    ]
+    expense_rows = conn.execute(
+        "SELECT amount, category, date, description FROM expenses "
+        "WHERE user_id = ? ORDER BY date DESC, id DESC",
+        (user_row["id"],),
+    ).fetchall()
+    conn.close()
 
-    breakdown = [
-        {"category_label": "Bills",         "amount": "₹120",
-         "percent": 75, "bar_class": "lbar-fill--purple", "icon": "zap"},
-        {"category_label": "Shopping",      "amount": "₹90",
-         "percent": 56, "bar_class": "lbar-fill--orange", "icon": "shopping-bag"},
-        {"category_label": "Health",        "amount": "₹45",
-         "percent": 28, "bar_class": "lbar-fill--blue",   "icon": "heart-pulse"},
-        {"category_label": "Transport",     "amount": "₹35",
-         "percent": 22, "bar_class": "lbar-fill--orange", "icon": "car"},
-        {"category_label": "Entertainment", "amount": "₹25",
-         "percent": 16, "bar_class": "lbar-fill--purple", "icon": "film"},
-        {"category_label": "Food",          "amount": "₹22",
-         "percent": 14, "bar_class": "lbar-fill--blue",   "icon": "utensils"},
-    ]
-
-    return render_template("profile.html",
-                           user=user, stats=stats,
-                           transactions=transactions, breakdown=breakdown)
+    return render_template(
+        "profile.html",
+        user=build_user_context(user_row),
+        stats=build_stats(expense_rows),
+        transactions=build_transactions(expense_rows),
+        breakdown=build_breakdown(expense_rows),
+    )
 
 
 @app.route("/expenses/add")
