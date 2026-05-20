@@ -137,7 +137,7 @@ def profile():
 
     filt = resolve_date_range(request.args, date.today())
 
-    sql = "SELECT amount, category, date, description FROM expenses WHERE user_id = ?"
+    sql = "SELECT id, amount, category, date, description FROM expenses WHERE user_id = ?"
     params = [user_row["id"]]
     if filt["is_active"]:
         if filt["start"]:
@@ -242,9 +242,86 @@ def add_expense():
     return redirect(url_for("profile"))
 
 
-@app.route("/expenses/<int:id>/edit")
+@app.route("/expenses/<int:id>/edit", methods=["GET", "POST"])
 def edit_expense(id):
-    return "Edit expense — coming in Step 8"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    conn = None
+    try:
+        conn = get_db()
+        row = conn.execute(
+            "SELECT id, amount, category, date, description "
+            "FROM expenses WHERE id = ? AND user_id = ?",
+            (id, session["user_id"]),
+        ).fetchone()
+        if row is None:
+            return redirect(url_for("profile"))
+
+        if request.method == "GET":
+            return render_template(
+                "edit_expense.html",
+                categories=CATEGORY_OPTIONS,
+                expense_id=id,
+                amount=str(row["amount"]),
+                category=row["category"],
+                date=row["date"],
+                description=row["description"] or "",
+                error=None,
+            )
+
+        amount_raw      = request.form.get("amount", "").strip()
+        category_raw    = request.form.get("category", "").strip().lower()
+        date_raw        = request.form.get("date", "").strip()
+        description_raw = request.form.get("description", "").strip()
+
+        def fail(msg):
+            return render_template(
+                "edit_expense.html",
+                categories=CATEGORY_OPTIONS,
+                expense_id=id,
+                amount=amount_raw,
+                category=category_raw,
+                date=date_raw,
+                description=description_raw,
+                error=msg,
+            )
+
+        try:
+            amount = float(amount_raw)
+        except ValueError:
+            return fail("Amount must be a number.")
+        if amount <= 0:
+            return fail("Amount must be greater than zero.")
+        if amount > 10_000_000:
+            return fail("Amount is too large.")
+
+        if category_raw not in KNOWN_CATEGORIES:
+            return fail("Please choose a valid category.")
+
+        try:
+            parsed_date = datetime.strptime(date_raw, "%Y-%m-%d").date()
+        except ValueError:
+            return fail("Date must be in YYYY-MM-DD format.")
+        if parsed_date > date.today() + timedelta(days=1):
+            return fail("Date cannot be in the future.")
+
+        if len(description_raw) > 200:
+            return fail("Description must be 200 characters or fewer.")
+        description_value = description_raw or None
+
+        conn.execute(
+            "UPDATE expenses "
+            "SET amount = ?, category = ?, date = ?, description = ? "
+            "WHERE id = ? AND user_id = ?",
+            (amount, category_raw, parsed_date.isoformat(),
+             description_value, id, session["user_id"]),
+        )
+        conn.commit()
+        return redirect(url_for("profile"))
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 @app.route("/expenses/<int:id>/delete")

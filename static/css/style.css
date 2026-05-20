@@ -1282,6 +1282,29 @@ a { color: inherit; text-decoration: none; }
     }
 }
 
+.profile-table-actions-col {
+    width: 90px;
+}
+
+.expense-table-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.expense-table-actions:hover {
+    color: var(--accent);
+}
+
+.expense-table-actions i {
+    width: 1em;
+    height: 1em;
+}
+
 .filter-error {
     flex-basis: 100%;
     color: var(--danger);

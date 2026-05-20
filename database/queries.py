@@ -176,6 +176,7 @@ def build_transactions(expense_rows):
             description = category_label
 
         transactions.append({
+            "id":             row["id"],
             "date":           date_display,
             "description":    description,
             "category":       bucketed_slug,
