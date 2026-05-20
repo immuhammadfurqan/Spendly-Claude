@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="analytics-section">
+    <div class="analytics-card">
+        <div class="analytics-blob analytics-blob-1"></div>
+        <div class="analytics-blob analytics-blob-2"></div>
+
+        <div class="analytics-inner">
+            <div class="analytics-icon-wrap">
+                <div class="analytics-icon">
+                    <i data-lucide="clock"></i>
+                </div>
+            </div>
+
+            <div class="analytics-badge-wrap">
+                <span class="analytics-badge">Coming Soon</span>
+            </div>
+
+            <h1 class="analytics-title">Analytics</h1>
+
+            <p class="analytics-desc">
+                We're working on powerful insights and visualizations to help you
+                understand your spending patterns better.
+            </p>
+
+            <div class="analytics-dots" aria-hidden="true">
+                <span></span><span></span><span></span>
+            </div>
+
+            <p class="analytics-tagline">We're crafting something special</p>
+
+            <form class="analytics-form" onsubmit="event.preventDefault();">
+                <input type="email"
+                       class="analytics-input"
+                       placeholder="Enter your email"
+                       aria-label="Email address">
+                <button type="submit" class="analytics-btn">Notify Me</button>
+            </form>
+
+            <p class="analytics-footer-text">
+                No spam. Just updates on our launch and exclusive early access.
+            </p>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
