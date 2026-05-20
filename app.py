@@ -1,5 +1,6 @@
+import os
 import sqlite3
-from datetime import date
+from datetime import date, datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db, seed_db
@@ -10,10 +11,12 @@ from database.queries import (
     build_breakdown,
     resolve_date_range,
     DATE_PRESETS,
+    KNOWN_CATEGORIES,
+    CATEGORY_OPTIONS,
 )
 
 app = Flask(__name__)
-app.secret_key = "dev-secret-key-change-in-production"
+app.secret_key = os.environ.get("SECRET_KEY") or "dev-secret-key-change-in-production"
 
 with app.app_context():
     init_db()
@@ -166,9 +169,77 @@ def analytics():
     return render_template("analytics.html")
 
 
-@app.route("/expenses/add")
+@app.route("/expenses/add", methods=["GET", "POST"])
 def add_expense():
-    return "Add expense — coming in Step 7"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    if request.method == "GET":
+        return render_template(
+            "add_expense.html",
+            categories=CATEGORY_OPTIONS,
+            amount="",
+            category="",
+            date=date.today().isoformat(),
+            description="",
+            error=None,
+        )
+
+    amount_raw      = request.form.get("amount", "").strip()
+    category_raw    = request.form.get("category", "").strip().lower()
+    date_raw        = request.form.get("date", "").strip()
+    description_raw = request.form.get("description", "").strip()
+
+    def fail(msg, *, amount=amount_raw, category=category_raw,
+             date=date_raw, description=description_raw):
+        return render_template(
+            "add_expense.html",
+            categories=CATEGORY_OPTIONS,
+            amount=amount,
+            category=category,
+            date=date,
+            description=description,
+            error=msg,
+        )
+
+    try:
+        amount = float(amount_raw)
+    except ValueError:
+        return fail("Amount must be a number.")
+    if amount <= 0:
+        return fail("Amount must be greater than zero.")
+    if amount > 10_000_000:
+        return fail("Amount is too large.")
+
+    if category_raw not in KNOWN_CATEGORIES:
+        return fail("Please choose a valid category.")
+
+    try:
+        parsed_date = datetime.strptime(date_raw, "%Y-%m-%d").date()
+    except ValueError:
+        return fail("Date must be in YYYY-MM-DD format.")
+    if parsed_date > date.today() + timedelta(days=1):
+        return fail("Date cannot be in the future.")
+
+    if len(description_raw) > 200:
+        return fail("Description must be 200 characters or fewer.")
+    description_value = description_raw or None
+
+    conn = None
+    try:
+        conn = get_db()
+        conn.execute(
+            "INSERT INTO expenses (user_id, amount, category, date, description) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (session["user_id"], amount, category_raw,
+             parsed_date.isoformat(), description_value),
+        )
+        conn.commit()
+    finally:
+        if conn is not None:
+            conn.close()
+
+    return redirect(url_for("profile"))
 
 
 @app.route("/expenses/<int:id>/edit")
@@ -182,4 +253,5 @@ def delete_expense(id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
+    app.run(debug=debug_mode, port=5001)

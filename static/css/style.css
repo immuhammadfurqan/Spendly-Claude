@@ -1228,6 +1228,60 @@ a { color: inherit; text-decoration: none; }
     margin: 0 0 1.25rem;
 }
 
+/* === Add expense form === */
+.expense-form-amount {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.expense-form-amount > span {
+    position: absolute;
+    left: 0.875rem;
+    color: var(--ink-muted);
+    font-size: 0.95rem;
+    pointer-events: none;
+}
+
+.expense-form-amount > .form-input {
+    padding-left: 1.75rem;
+}
+
+.expense-form-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.expense-form-actions .btn-submit {
+    width: auto;
+    flex: 1;
+    margin-top: 0;
+}
+
+.expense-form-cancel {
+    color: var(--ink-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.expense-form-cancel:hover {
+    color: var(--accent);
+}
+
+@media (max-width: 600px) {
+    .expense-form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .expense-form-actions .btn-submit {
+        flex: none;
+    }
+}
+
 .filter-error {
     flex-basis: 100%;
     color: var(--danger);

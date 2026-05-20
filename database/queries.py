@@ -18,6 +18,11 @@ BAR_CLASSES = ("lbar-fill--purple", "lbar-fill--orange", "lbar-fill--blue")
 
 KNOWN_CATEGORIES = set(CATEGORY_ICONS.keys())
 
+# Ordered (slug, label) pairs for rendering the add-expense category select.
+# Derived from CATEGORY_ICONS so the option list stays in lockstep with the
+# canonical category set — no second source to drift out of sync.
+CATEGORY_OPTIONS = [(slug, slug.title()) for slug in CATEGORY_ICONS]
+
 DATE_PRESETS = (
     ("all",   "All time"),
     ("month", "This month"),
